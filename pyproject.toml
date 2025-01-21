@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "agentic-ai-rag"
+version = "0.1.0"
+description = "AI Agent that uses RAG to answer user queries based on specific documents."
+authors = ["adam-michael-bishop <adam.michael.bishop@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.6"
+langchain = "^0.3.15"
+uvicorn = "^0.34.0"
+python-dotenv = "^1.0.1"
+anthropic = "^0.44.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

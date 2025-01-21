@@ -1,0 +1,64 @@
+# Byte-compiled files
+*.py[cod]
+__pycache__/
+*.so
+
+# Virtual environment
+.env/
+venv/
+.venv/
+
+# Environment variables
+.env
+
+# Python dependencies
+*.egg
+*.egg-info/
+dist/
+build/
+*.pyc
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Milvus data
+milvus/
+data/
+
+# Docker
+docker-compose.override.yml
+*.dockerignore
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Test and coverage results
+.coverage
+htmlcov/
+*.cover
+.cache/
+pytest_cache/
+junitxml/
+.tox/
+
+# Generated files
+*.generated
+*.lock
+
+# FastAPI static files
+staticfiles/
+
+# Ignore the FastAPI auto-generated OpenAPI schema (if applicable)
+openapi.json
+
+# Specific to development
+dev_settings.py
