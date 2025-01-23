@@ -5,20 +5,29 @@ import uvicorn
 import os
 
 # LangChain and Milvus imports
-from langchain.vectorstores import Milvus
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain.chains import RetrievalQA
+from langchain_milvus import Milvus
+from langchain import hub
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativeAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.output_parsers import StrOutputParser
 from langchain.docstore.document import Document
+from langchain_core.runnables import RunnablePassthrough
 
 # Import the Gemini LLM
-import google.generativeai as genai
+# import google.generativeai as genai
 
 # Initialize the FastAPI app
 app = FastAPI()
 
+# Prompt for RAG
+prompt = hub.pull("rlm/rag-prompt")
+
+# Initialize the Gemini LLM
+GOOGLE_GEMINI_API_KEY = os.environ["GOOGLE_GEMINI_API_KEY"]
+llm = GoogleGenerativeAI(model="gemini-1.5-flash", api_key=GOOGLE_GEMINI_API_KEY)
+
 # Initialize embeddings
-embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=GOOGLE_GEMINI_API_KEY)
 
 # Milvus configuration
 milvus_collection_name = "documents_collection"
@@ -29,16 +38,15 @@ vectorstore = Milvus(
     embedding_function=embeddings,
     collection_name=milvus_collection_name,
     connection_args=milvus_connection_args,
+    auto_id=True,
 )
-
-# Initialize the Gemini LLM
-GOOGLE_GEMINI_API_KEY = os.environ["GOOGLE_GEMINI_API_KEY"]
-genai.configure(api_key=GOOGLE_GEMINI_API_KEY)
-llm = genai.GenerativeModel('gemini-1.5-flash')
 
 # Define a Pydantic model for the query request
 class QueryRequest(BaseModel):
     question: str
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
 
 @app.post("/upload_file/")
 async def upload_file(file: UploadFile = File(...)):
@@ -65,21 +73,26 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"An error occurred: {str(e)}"})
 
-@app.post("/ask/")
-async def ask_question(request: QueryRequest):
+@app.post("/query/")
+async def process_query(request: QueryRequest):
     """
-    Endpoint to handle user questions.
-    Uses a RetrievalQA chain to find answers based on the uploaded documents.
+    Endpoint to handle a user query.
+    Uses a QA chain to find answers based on the uploaded documents.
     """
     try:
-        # Retrieve relevant documents using the vector store
-        retriever = vectorstore.as_retriever()
-        
-        # Set up the RetrievalQA chain with the LLM and retriever
-        qa_chain = RetrievalQA(llm=llm, retriever=retriever)
+        # Set up the QA chain
+        qa_chain = (
+            {
+                "context": vectorstore.as_retriever() | format_docs,
+                "question": RunnablePassthrough(),
+            }
+            | prompt
+            | llm
+            | StrOutputParser()
+        )
         
         # Generate the answer
-        answer = qa_chain.run(request.question)
+        answer = qa_chain.invoke(request.question)
         
         return {"answer": answer}
     except Exception as e:
