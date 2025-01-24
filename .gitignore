@@ -62,3 +62,4 @@ openapi.json
 
 # Specific to development
 dev_settings.py
+file_structure.py
